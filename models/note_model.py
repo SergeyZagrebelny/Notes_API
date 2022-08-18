@@ -7,38 +7,47 @@ class NoteModel(db.Model):
     """
 
     __tablename__ = "notes"
-    id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(80))
+    id = db.Column(db.Integer(), primary_key=True)
+    title = db.Column(db.String(100))
     content = db.Column(db.String(1000))
 
-    #store_id = db.Column(db.Integer, db.ForeignKey("stores.id"))    # stores - имя таблицы, id - имя столбца
-    #store = db.relationship("StoreModel")
+    author = db.Column(db.Integer(), db.ForeignKey("users.user_id"))      # users - имя таблицы, id - имя столбца
 
 
-    def __init__(self, title, content):
+    def __init__(self, note_number, author, title, content):
+        self.id = note_number
+        self.author = author
         self.title = title
         self.content = content
-        #self.store_id = store_id
+
 
     def json(self):
-        return {"id": self.id, 
+        temp = self.content
+        if len(temp) > 30:  # тут может быть ошибка с индексами. Надо проверить
+            stripped_content = temp[:30] + "..." 
+        else:
+            stripped_content = temp
+        return {"id": self.id,
+                "author": self.author,
                 "title": self.title, 
-                "content": self.content,} 
-                #'store_id': self.store_id}
+                "content": stripped_content} 
+
 
     @classmethod
-    def find_by_title(cls, title):
-        return cls.query.filter_by(title=title).first() # SELECT * FROM notes WHERE title=title LIMIT 1
+    def find_by_id(cls, note_number):
+        return cls.query.filter_by(id=note_number).first() # SELECT * FROM notes WHERE title=title LIMIT 1
     
+
     @classmethod
     def find_all(cls):
         return cls.query.all()
     
+
     def save_to_db(self):
         db.session.add(self)
         db.session.commit()
 
-    
+
     def delete_from_db(self):
         db.session.delete(self)
         db.session.commit()
