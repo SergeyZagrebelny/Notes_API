@@ -1,6 +1,8 @@
-from flask_restful import Resource, reqparse
+import sqlite3
 
+from flask_restful import Resource, reqparse
 from models.note_model import NoteModel
+
 
 class Note(Resource):
     parser = reqparse.RequestParser()
@@ -9,11 +11,11 @@ class Note(Resource):
                         required=True,
                         help="Author must be set.")
 
-    parser.add_argument("is_superuser",
-                        type=bool,
+    parser.add_argument("time_created",
+                        type=sqlite3.Date,
                         required=False,
-                        help="Sets the superuser rights")
-    
+                        help=f"Created on server based on its time.") 
+
     parser.add_argument("title",
                         type=str,
                         required=True,

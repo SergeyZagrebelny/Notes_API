@@ -18,6 +18,7 @@ def create_tables():            #
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///data.db'
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["PROPAGATE_EXCEPTIONS"] = True
+#app.config['SQLALCHEMY_ECHO'] = True
 
 api.add_resource(Note, '/note/<int:note_number>')
 api.add_resource(NoteList, '/notes')
