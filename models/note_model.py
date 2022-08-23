@@ -1,3 +1,6 @@
+import datetime
+import pytz
+
 from sqlalchemy.sql import func
 
 from my_db import db
@@ -12,7 +15,9 @@ class NoteModel(db.Model):
     id = db.Column(db.Integer(), primary_key=True)
     title = db.Column(db.Text())
     content = db.Column(db.String(1000))
-    time_created = db.Column(db.DateTime(timezone=True), server_default=func.now())
+    time_created = db.Column(db.DateTime(timezone=True),
+                             server_default=func.now(),
+                             default=datetime.datetime.now(tz=pytz.timezone("Asia/Yekaterinburg")))
     author = db.Column(db.Integer(), db.ForeignKey("users.user_id"))      # users - имя таблицы, user_id - имя столбца
 
 

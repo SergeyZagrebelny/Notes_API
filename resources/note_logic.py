@@ -1,6 +1,10 @@
 import sqlite3
 
 from flask_restful import Resource, reqparse
+from flask_jwt_extended import (jwt_required,
+                                get_jwt,
+                                get_jwt_identity,
+                                )
 from models.note_model import NoteModel
 
 
@@ -26,7 +30,7 @@ class Note(Resource):
                         required=True,
                         help="Every note needs some content.")
 
-    #@jwt_required()
+    @jwt_required()
     def get(self, note_number):
         note = NoteModel.find_by_id(note_number)
         if note:
@@ -49,11 +53,17 @@ class Note(Resource):
             return {"message": "An error occured."}, 500
         return note.json(), 201
 
- 
+    
+    @jwt_required(fresh=True)
     def delete(self, note_number):
+        current_user = get_jwt_identity()
+        if not current_user['is_admin']:
+            return {"message": "Admin privilege required."}, 401
         note = NoteModel.find_by_id(note_number)
         if note:
             note.delete_from_db()
+        else:
+            return {"message": "Note does not exist."}
         return {"message": "Note was deleted"}
 
 
@@ -70,7 +80,10 @@ class Note(Resource):
         
         return note.json()
 
-
 class NoteList(Resource):
+    @jwt_required()
     def get(self):
+        current_user = get_jwt_identity()
+        if not current_user['is_admin']:
+            return {"message": "Admin privilege required."}, 401
         return {"notes": [note.json() for note in NoteModel.find_all()]}
