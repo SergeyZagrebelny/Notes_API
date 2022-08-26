@@ -37,7 +37,7 @@ class Note(Resource):
             return note.json(), 200
         return {"message": "Note was not found."}, 404
 
-
+    @jwt_required(fresh=True)
     def post(self, note_number):
         if NoteModel.find_by_id(note_number):
             return {"message": f"The note {note_number} already exists."}, 400
@@ -57,6 +57,9 @@ class Note(Resource):
     @jwt_required(fresh=True)
     def delete(self, note_number):
         current_user = get_jwt_identity()
+        print("===============")
+        print("current_user = ", current_user)
+        print("===============")
         if not current_user['is_admin']:
             return {"message": "Admin privilege required."}, 401
         note = NoteModel.find_by_id(note_number)
