@@ -10,6 +10,7 @@ from flask_jwt_extended import (
                                 )
 
 from models.user_model import UserModel
+from schemas.schema_for_users import UserSchema
 
 
 class UserRegister(Resource):
@@ -45,7 +46,8 @@ class UserRegister(Resource):
                         required=True,
                         help=f"Email is nesessary.")
     
-    def post(self):
+    @classmethod
+    def post(cls):
         data = UserRegister.parser.parse_args()
         if UserModel.find_by_username(data['username']):
             return {"message": "Username already exists."}, 400
@@ -95,8 +97,8 @@ class UserLogin(Resource):
         # create access token
         # create refresh token (later) 
         if user and compare_digest(user.password, data["password"]):
-            access_token = create_access_token(identity=user.user_id, fresh=True)
-            refresh_token = create_refresh_token(user.user_id)
+            access_token = create_access_token(identity=user.id, fresh=True)
+            refresh_token = create_refresh_token(user.id)
             # return them
             return {
                 'access_token': access_token,

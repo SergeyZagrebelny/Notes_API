@@ -34,13 +34,13 @@ app.config["JWT_SECRET_KEY"] = "JWT deservs a new and unique secret key. Not jus
 jwt = JWTManager(app)           # does not create /auth by itself
 
 
-@jwt.user_identity_loader
-def add_claims_to_jwt(identity):
-    # as soon as jwt token is created this function will check if
-    # some claims should be also included 
-    if identity == 1:
-        return {"is_admin": True}
-    return {"is_admin": False}
+#@jwt.user_identity_loader
+#def add_claims_to_jwt(identity):
+#    # as soon as jwt token is created this function will check if
+#    # some claims should be also included 
+#    if identity == 1:
+#        return {"is_admin": True}
+#    return {"is_admin": False}
 
 # returns a custom response when an invalid JWT is encountered
 @jwt.invalid_token_loader
@@ -75,7 +75,7 @@ def not_fresh_token_callback():
        }), 401
 
 
-api.add_resource(Note, '/note/<int:note_number>')
+api.add_resource(Note, '/note/<int:note_id>')
 api.add_resource(NoteList, '/notes')
 api.add_resource(User, "/user/<int:user_id>")
 api.add_resource(UserRegister, '/register')
