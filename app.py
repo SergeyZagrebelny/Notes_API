@@ -8,6 +8,7 @@ from flask_jwt_extended import JWTManager, get_jwt_identity
 from resources.note_logic import Note, NoteList
 from resources.user_logic import UserRegister, User, UserLogin, TokenRefresh
 from my_db import db
+from ma import ma
 
 
 app = Flask(__name__)
@@ -84,4 +85,5 @@ api.add_resource(TokenRefresh, "/refresh")
 
 if __name__ == "__main__":
     db.init_app(app)
+    ma.init_app(app)
     app.run(port=5000, debug=True)

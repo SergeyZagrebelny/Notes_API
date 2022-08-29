@@ -15,9 +15,9 @@ class UserModel(db.Model):
     """
 
     __tablename__ = "users"
-    id = db.Column(db.Integer(), primary_key=True)
+    id = db.Column(db.Integer(), primary_key=True, autoincrement=True)
     is_superuser = db.Column(db.Boolean(), default=False, nullable=False)
-    time_created = db.Column(db.DateTime(timezone=True), server_default=func.now(timezone=True))
+    created_at = db.Column(db.DateTime(timezone=True), server_default=func.now(timezone=True))
                              # next line (added to previous) causes time to be always the same as the moment when app run
                              #default=datetime.datetime.now(tz=pytz.timezone("Asia/Yekaterinburg")))
     username = db.Column(db.String(80), unique=True, nullable=False)
@@ -26,15 +26,15 @@ class UserModel(db.Model):
 
 
     def __init__(self,
-                 user_id: int,
+                 id: int,
                  is_superuser: bool,
-                 time_created: datetime,
+                 created_at: datetime,
                  username: str,
                  password: str,
                  email: str):
-        self.user_id = user_id
+        self.id = id
         self.is_superuser = is_superuser
-        self.time_created = time_created
+        self.created_at = created_at
         self.username = username
         self.password = password
         self.email = email
@@ -44,7 +44,7 @@ class UserModel(db.Model):
             "user_id": self.id,
             "is_superuser": self.is_superuser,
             "username": self.username,
-            "time_created": str(self.time_created),
+            "created_at": str(self.time_created),
             "email": self.email,
         }
 

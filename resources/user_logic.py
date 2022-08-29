@@ -1,6 +1,8 @@
 import sqlite3
+from datetime import datetime as dt
 
-from flask_restful import Resource, reqparse
+from flask_restful import Resource
+from flask import request
 from hmac import compare_digest
 from flask_jwt_extended import (
                                 create_access_token,
@@ -8,65 +10,44 @@ from flask_jwt_extended import (
                                 jwt_required,
                                 get_jwt_identity,
                                 )
+from marshmallow import ValidationError
 
 from models.user_model import UserModel
 from schemas.schema_for_users import UserSchema
 
 
+user_schema = UserSchema()
+
 class UserRegister(Resource):
-    parser = reqparse.RequestParser()
-    parser.add_argument("user_id",
-                        type=int,
-                        required=False,
-                        help=f"User_id is auto incremented.")
-
-    parser.add_argument("is_superuser",
-                        type=bool,
-                        required=False,
-                        default=False,
-                        help=f"To create superuser set this to True.")
-
-    parser.add_argument("time_created",
-                        type=sqlite3.Date,
-                        required=False,
-                        help=f"Created on server based on its time.")
-
-    parser.add_argument("username",
-                        type=str,
-                        required=True,
-                        help=f"Username is nesessary.")
-
-    parser.add_argument("password",
-                        type=str,
-                        required=True,
-                        help=f"Password is nesessary.")
-    
-    parser.add_argument("email",
-                        type=str,
-                        required=True,
-                        help=f"Email is nesessary.")
-    
     @classmethod
     def post(cls):
-        data = UserRegister.parser.parse_args()
-        if UserModel.find_by_username(data['username']):
+        try:
+            user_data = user_schema.load(request.get_json())
+        except ValidationError as err:
+            return err.messages, 400
+            
+        if UserModel.find_by_username(user_data['username']):
             return {"message": "Username already exists."}, 400
-        user = UserModel(**data)
+        
+        #user_data["created_at"] = dt.utcnow()
+        print("========\n"+str(user_data)+"\n========\n")
+        user = UserModel(**user_data)
         user.save_to_db()
         return {"message": "User successfully created."}, 201
 
 
 class User(Resource):
     @classmethod
-    def get(cls, user_id):
-        user = UserModel.find_by_id(user_id)
+    def get(cls, id):
+        user = UserModel.find_by_id(id)
         if not user:
             return {"message": "User not found"}, 404
-        return user.json()
+        return user_schema.dump(user), 200
+
 
     @classmethod
-    def delete(cls, user_id):
-        user = UserModel.find_by_id(user_id)
+    def delete(cls, id):
+        user = UserModel.find_by_id(id)
         if not user:
             return {"message": "User not found"}, 404
         user.delete_from_db()
@@ -74,29 +55,20 @@ class User(Resource):
 
 
 class UserLogin(Resource):
-    parser = reqparse.RequestParser()
-    parser.add_argument("username",
-                        type=str,
-                        required=True,
-                        help=f"Username is nesessary.")
-
-    parser.add_argument("password",
-                        type=str,
-                        required=True,
-                        help=f"Password is nesessary.")
-    
     @classmethod
     def post(cls):
-        # get data from parser
-        data = cls.parser.parse_args()
-
+        # get user_data from request through marshmellow schema
+        try:
+            user_data = user_schema.load(request.get_json())
+        except ValidationError as err:
+            return err.messages, 400
         # find user in database
-        user = UserModel.find_by_username(data["username"])
+        user = UserModel.find_by_username(user_data["username"])
 
         # check password
         # create access token
         # create refresh token (later) 
-        if user and compare_digest(user.password, data["password"]):
+        if user and compare_digest(user.password, user_data["password"]):
             access_token = create_access_token(identity=user.id, fresh=True)
             refresh_token = create_refresh_token(user.id)
             # return them
