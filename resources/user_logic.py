@@ -22,16 +22,16 @@ class UserRegister(Resource):
     @classmethod
     def post(cls):
         try:
-            user_data = user_schema.load(request.get_json())
+            user = user_schema.load(request.get_json())
         except ValidationError as err:
             return err.messages, 400
             
-        if UserModel.find_by_username(user_data['username']):
+        if UserModel.find_by_username(user.username):
             return {"message": "Username already exists."}, 400
         
         #user_data["created_at"] = dt.utcnow()
-        print("========\n"+str(user_data)+"\n========\n")
-        user = UserModel(**user_data)
+        print("========\n"+str(user)+"\n========\n")
+
         user.save_to_db()
         return {"message": "User successfully created."}, 201
 
@@ -58,17 +58,20 @@ class UserLogin(Resource):
     @classmethod
     def post(cls):
         # get user_data from request through marshmellow schema
+        input_json = request.get_json()
+        input_json["email"] = "A wayout because schema needs it. And I cant avoid it"
         try:
-            user_data = user_schema.load(request.get_json())
+            user_data = user_schema.load(input_json)
+            print(user_data)
         except ValidationError as err:
             return err.messages, 400
         # find user in database
-        user = UserModel.find_by_username(user_data["username"])
+        user = UserModel.find_by_username(user_data.username)
 
         # check password
         # create access token
         # create refresh token (later) 
-        if user and compare_digest(user.password, user_data["password"]):
+        if user and compare_digest(user.password, user_data.password):
             access_token = create_access_token(identity=user.id, fresh=True)
             refresh_token = create_refresh_token(user.id)
             # return them

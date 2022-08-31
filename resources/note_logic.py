@@ -1,11 +1,11 @@
-import sqlite3
-
+from flask import request
 from flask_restful import Resource, reqparse
 from flask_jwt_extended import (jwt_required,
-                                get_jwt,
-                                get_jwt_identity,
-                                )
+                                get_jwt_identity)
+from marshmallow import ValidationError
+
 from models.note_model import NoteModel
+from schemas.schema_for_notes import NoteSchema
 
 BLANK_ERROR = "{} can not be left blank."
 NAME_ALREADY_EXISTS = "An item with name '{}' already exists."
@@ -14,89 +14,69 @@ ERROR_INSERTING = "An error occured while inserting the item."
 NOTE_DELETED = "Note deleted."
 NEED_ADMIN_PRIVILEGE = "Admit privilege required."
 
+note_schema = NoteSchema()
+
 class Note(Resource):
-    parser = reqparse.RequestParser()
-    parser.add_argument("author",
-                        type=str,
-                        required=True,
-                        help=BLANK_ERROR.format("Author"))
-
-    parser.add_argument("time_created",
-                        type=sqlite3.Date,
-                        required=False,
-                        help="Do not set it yourself.") 
-
-    parser.add_argument("title",
-                        type=str,
-                        required=True,
-                        help=BLANK_ERROR.format("Title"))
-
-    parser.add_argument("content",
-                        type=str,
-                        required=True,
-                        help=BLANK_ERROR.format("Content"))
-
     @classmethod
     @jwt_required()
-    def get(cls, note_id: int):
-        note = NoteModel.find_by_id(note_id)
+    def get(cls, id: int):
+        note = NoteModel.find_by_id(id)
         if note:
-            return note.json(), 200
+            return note_schema.dump(note), 200
         return {"message": ITEM_NOT_FOUND}, 404
 
     @classmethod
     @jwt_required(fresh=True)
-    def post(cls, note_id: int):
-        if NoteModel.find_by_id(note_id):
-            return {"message": NAME_ALREADY_EXISTS.format(note_id)}, 400
+    def post(cls, id: int):
+        if NoteModel.find_by_id(id):
+            return {"message": NAME_ALREADY_EXISTS.format(id)}, 400
 
-        data = Note.parser.parse_args()
-        #print("============")
-        #print(data)
-        #print("============")
-        note = NoteModel(note_id, **data) #unpacking all contence of data
+        note_json = request.get_json()
+        try:
+            note = note_schema.load(note_json)
+        except ValidationError as err:
+            return err.messages, 400
+
         try:
             note.save_to_db()
         except:
             return {"message": ERROR_INSERTING}, 500
-        return note.json(), 201
+        return note_schema.dump(note), 201
 
     
     @classmethod
     @jwt_required(fresh=True)
-    def delete(cls, note_id: int):
-        #current_user = get_jwt_identity()
-        #print("===============")
-        #print("current_user = ", current_user)
-        #print("===============")
-        #if not current_user['is_admin']:
-        #    return {"message": "Admin privilege required."}, 401
-        note = NoteModel.find_by_id(note_id)
+    def delete(cls, id: int):
+        note = NoteModel.find_by_id(id)
         if note:
             note.delete_from_db()
+            return {"message": NOTE_DELETED}
         else:
             return {"message": "Note does not exist."}
-        return {"message": NOTE_DELETED}
 
 
     @classmethod
-    def put(cls, note_id: int):
-        data = Note.parser.parse_args()
-        note = NoteModel.find_by_id(note_id)
-
-        if note == None:
-            note = NoteModel(note_id, **data)
+    def put(cls, id: int):
+        note_json = request.get_json()
+        note = NoteModel.find_by_id(id)
+        try:
+            note_valideted_data = note_schema.load(note_json)
+        except ValidationError as err:
+            return err.messages, 400
+        if note:
+            note.title = note_valideted_data.title
+            note.content = note_valideted_data.content
         else:
-            note.title = data.title
-            note.content = data.content
+            note = NoteModel(id=id, **note_json)
+
         note.save_to_db()
         
-        return note.json()
+        return note_schema.dump(note), 201
 
 class NoteList(Resource):
     @jwt_required(optional=True)
     def get(self):
         current_user = get_jwt_identity()
-        if not current_user['is_admin']:
-            return {"message": NEED_ADMIN_PRIVILEGE}, 401
-        return {"notes": [note.json() for note in NoteModel.find_all()]}
+        #if not current_user['is_admin']:
+        #    return {"message": NEED_ADMIN_PRIVILEGE}, 401
+        return {"notes": [note_schema.dump(note) for note in NoteModel.find_all()]}

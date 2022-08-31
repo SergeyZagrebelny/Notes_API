@@ -76,9 +76,9 @@ def not_fresh_token_callback():
        }), 401
 
 
-api.add_resource(Note, '/note/<int:note_id>')
+api.add_resource(Note, '/note/<int:id>')
 api.add_resource(NoteList, '/notes')
-api.add_resource(User, "/user/<int:user_id>")
+api.add_resource(User, "/user/<int:id>")
 api.add_resource(UserRegister, '/register')
 api.add_resource(UserLogin, "/login")
 api.add_resource(TokenRefresh, "/refresh")
