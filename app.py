@@ -4,9 +4,16 @@ from datetime import timedelta
 from flask import Flask, jsonify
 from flask_restful import Api
 from flask_jwt_extended import JWTManager, get_jwt_identity
+from marshmallow import ValidationError
 
 from resources.note_logic import Note, NoteList
-from resources.user_logic import UserRegister, User, UserLogin, TokenRefresh
+from resources.user_logic import (
+                                  UserRegister,
+                                  User,
+                                  UserLogin,
+                                  TokenRefresh,
+                                  UserConfirm,
+)
 from my_db import db
 from ma import ma
 
@@ -34,6 +41,9 @@ app.config["JWT_SECRET_KEY"] = "JWT deservs a new and unique secret key. Not jus
 
 jwt = JWTManager(app)           # does not create /auth by itself
 
+@app.errorhandler(ValidationError)
+def handle_marshmallow_error(err):   # except ValidationError as err
+    return jsonify(err.messages), 400
 
 #@jwt.user_identity_loader
 #def add_claims_to_jwt(identity):
@@ -81,6 +91,7 @@ api.add_resource(NoteList, '/notes')
 api.add_resource(User, "/user/<int:id>")
 api.add_resource(UserRegister, '/register')
 api.add_resource(UserLogin, "/login")
+api.add_resource(UserConfirm, "/user_confirm/<int:user_id>")
 api.add_resource(TokenRefresh, "/refresh")
 
 if __name__ == "__main__":

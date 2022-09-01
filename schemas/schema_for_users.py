@@ -7,7 +7,7 @@ class UserSchema(ma.SQLAlchemyAutoSchema):
         # flask-marshmellow creates fields based on UserModel fields
         model = UserModel
         load_only = ("password",)
-        dump_only = ("id", "created_at",)
+        dump_only = ("id", "created_at", "activated",)
         load_instance = True
 
     #id = fields.Int()

@@ -20,6 +20,7 @@ class UserModel(db.Model):
     username = db.Column(db.String(80), unique=True, nullable=False)
     password = db.Column(db.String(80), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
+    activated = db.Column(db.Boolean, default=False)
 
 
     def json(self) -> Dict:
@@ -29,6 +30,7 @@ class UserModel(db.Model):
             "username": self.username,
             "created_at": str(self.created_at),
             "email": self.email,
+            "activated": self.activated,
         }
 
     def save_to_db(self):

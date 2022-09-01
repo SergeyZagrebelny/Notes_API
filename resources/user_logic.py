@@ -16,6 +16,11 @@ from models.user_model import UserModel
 from schemas.schema_for_users import UserSchema
 
 
+NOT_CONFIRMED_ERROR = "You have not confirmed your registration. Check <{}> for this."
+USER_NOT_FOUND = "Can not find user with id = {}."
+USER_CONFIRMED = "Confirmation passed successfully."
+
+
 user_schema = UserSchema()
 
 class UserRegister(Resource):
@@ -28,10 +33,6 @@ class UserRegister(Resource):
             
         if UserModel.find_by_username(user.username):
             return {"message": "Username already exists."}, 400
-        
-        #user_data["created_at"] = dt.utcnow()
-        print("========\n"+str(user)+"\n========\n")
-
         user.save_to_db()
         return {"message": "User successfully created."}, 201
 
@@ -62,7 +63,6 @@ class UserLogin(Resource):
         input_json["email"] = "A wayout because schema needs it. And I cant avoid it"
         try:
             user_data = user_schema.load(input_json)
-            print(user_data)
         except ValidationError as err:
             return err.messages, 400
         # find user in database
@@ -70,16 +70,16 @@ class UserLogin(Resource):
 
         # check password
         # create access token
-        # create refresh token (later) 
+        # create refresh token 
         if user and compare_digest(user.password, user_data.password):
-            access_token = create_access_token(identity=user.id, fresh=True)
-            refresh_token = create_refresh_token(user.id)
-            # return them
-            return {
-                'access_token': access_token,
-                'refresh_token': refresh_token
-            }, 200
-        
+            if user.activated:
+                access_token = create_access_token(identity=user.id, fresh=True)
+                refresh_token = create_refresh_token(user.id)
+                return {
+                    'access_token': access_token,
+                    'refresh_token': refresh_token
+                }, 200
+            return {"message": NOT_CONFIRMED_ERROR.format(user.email)}, 400
         return {'message': 'Invalid credentials'}, 401
 
 
@@ -89,3 +89,14 @@ class TokenRefresh(Resource):
         current_user = get_jwt_identity()
         new_token = create_access_token(identity=current_user, fresh=False)
         return {'access_token': new_token}
+
+
+class UserConfirm(Resource):
+    @classmethod
+    def get(cls, user_id: int):
+        user = UserModel.find_by_id(id=user_id)
+        if not user:
+            return {"message": USER_NOT_FOUND.format(id)}, 404
+        user.activated = True
+        user.save_to_db()
+        return {"message": USER_CONFIRMED}, 200
