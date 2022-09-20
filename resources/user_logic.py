@@ -2,7 +2,7 @@ import sqlite3
 from datetime import datetime as dt
 
 from flask_restful import Resource
-from flask import request
+from flask import request, make_response, render_template
 from hmac import compare_digest
 from flask_jwt_extended import (
                                 create_access_token,
@@ -94,9 +94,17 @@ class TokenRefresh(Resource):
 class UserConfirm(Resource):
     @classmethod
     def get(cls, user_id: int):
+        # it is GET because the user will click a link in e-mail to get to
+        # that URL, it will be a GET request. Browsers only make GET 
+        # requests when they access pages.
         user = UserModel.find_by_id(id=user_id)
         if not user:
             return {"message": USER_NOT_FOUND.format(id)}, 404
         user.activated = True
         user.save_to_db()
-        return {"message": USER_CONFIRMED}, 200
+        headers = {"Content-Type": "text/html"}
+        return make_response(render_template("confirmation_page.html", email=user.email), 200, headers)
+        # If I want to redirect to some other page
+        #return redirect("http://localhost:3000", code=302)
+        # If I want to send message back
+        #return {"message": USER_CONFIRMED}, 200

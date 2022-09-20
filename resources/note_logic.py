@@ -1,18 +1,21 @@
 from flask import request
 from flask_restful import Resource, reqparse
 from flask_jwt_extended import (jwt_required,
-                                get_jwt_identity)
+                                get_jwt_identity,
+                                decode_token)
 from marshmallow import ValidationError
 
 from models.note_model import NoteModel
 from schemas.schema_for_notes import NoteSchema
+from models.user_model import UserModel
 
 BLANK_ERROR = "{} can not be left blank."
 NAME_ALREADY_EXISTS = "An item with name '{}' already exists."
 ITEM_NOT_FOUND = "Item not found."
 ERROR_INSERTING = "An error occured while inserting the item."
 NOTE_DELETED = "Note deleted."
-NEED_ADMIN_PRIVILEGE = "Admit privilege required."
+NEED_ADMIN_PRIVILEGE = "Admin privilege required."
+HAVE_NO_RIGHT = "You have no right for this."
 
 note_schema = NoteSchema()
 
@@ -21,6 +24,13 @@ class Note(Resource):
     @jwt_required()
     def get(cls, id: int):
         note = NoteModel.find_by_id(id)
+        #token_used = request.headers["Authorization"].split()[1]
+        #print(decode_token(token_used))
+        current_user_id = get_jwt_identity()
+        this_user = UserModel.find_by_id(current_user_id)
+        is_superuser = this_user.is_superuser
+        if not is_superuser:
+            return {"message": HAVE_NO_RIGHT}, 403
         if note:
             return note_schema.dump(note), 200
         return {"message": ITEM_NOT_FOUND}, 404
@@ -28,6 +38,12 @@ class Note(Resource):
     @classmethod
     @jwt_required(fresh=True)
     def post(cls, id: int):
+        current_user_id = get_jwt_identity()
+        this_user = UserModel.find_by_id(current_user_id)
+        is_superuser = this_user.is_superuser
+        if not is_superuser:
+            return {"message": HAVE_NO_RIGHT}, 403
+
         if NoteModel.find_by_id(id):
             return {"message": NAME_ALREADY_EXISTS.format(id)}, 400
 
@@ -47,6 +63,12 @@ class Note(Resource):
     @classmethod
     @jwt_required(fresh=True)
     def delete(cls, id: int):
+        current_user_id = get_jwt_identity()
+        this_user = UserModel.find_by_id(current_user_id)
+        is_superuser = this_user.is_superuser
+        if not is_superuser:
+            return {"message": HAVE_NO_RIGHT}, 403
+
         note = NoteModel.find_by_id(id)
         if note:
             note.delete_from_db()
@@ -57,6 +79,12 @@ class Note(Resource):
 
     @classmethod
     def put(cls, id: int):
+        current_user_id = get_jwt_identity()
+        this_user = UserModel.find_by_id(current_user_id)
+        is_superuser = this_user.is_superuser
+        if not is_superuser:
+            return {"message": HAVE_NO_RIGHT}, 403
+            
         note_json = request.get_json()
         note = NoteModel.find_by_id(id)
         try:
