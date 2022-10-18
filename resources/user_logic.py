@@ -1,3 +1,5 @@
+from functools import partial
+import traceback
 import sqlite3
 from datetime import datetime as dt
 
@@ -33,8 +35,17 @@ class UserRegister(Resource):
             
         if UserModel.find_by_username(user.username):
             return {"message": "Username already exists."}, 400
-        user.save_to_db()
-        return {"message": "User successfully created."}, 201
+
+        if UserModel.find_by_email(user.email):
+            return {"message": "Email already exists."}, 400
+
+        try:
+            user.save_to_db()
+            user.send_confirmatiom_email()
+            return {"message": "Registration passed successfully."}, 201
+        except:
+            traceback.print_exec()
+            return {"message": "Failed to create user."}, 500
 
 
 class User(Resource):
@@ -60,9 +71,9 @@ class UserLogin(Resource):
     def post(cls):
         # get user_data from request through marshmellow schema
         input_json = request.get_json()
-        input_json["email"] = "A wayout because schema needs it. And I cant avoid it"
+        #input_json["email"] = "A wayout because schema needs it. And I cant avoid it"
         try:
-            user_data = user_schema.load(input_json)
+            user_data = user_schema.load(input_json, partial=("email",))
         except ValidationError as err:
             return err.messages, 400
         # find user in database

@@ -1,10 +1,15 @@
+from flask import request, url_for
 from sqlalchemy.sql import func
 from typing import Dict
+from requests import Response, post
 
 from my_db import db
 
 
-#UserJSON = Dict[str, ]
+MAILGUN_DOMAIN = ""
+MAILGUN_API_KEY = ""
+FROM_TITLE = ""
+FROM_EMAIL = ""
 
 class UserModel(db.Model):
     """
@@ -41,11 +46,32 @@ class UserModel(db.Model):
         db.session.delete(self)
         db.session.commit()
 
-
     @classmethod
     def find_by_username(cls, username: str) -> "UserModel":
         return cls.query.filter_by(username=username).first()
     
     @classmethod
+    def find_by_email(cls, email: str) -> "UserModel":
+        return cls.query.filter_by(email=email).first()
+    
+    @classmethod
     def find_by_id(cls, id: int) -> "UserModel":
         return cls.query.filter_by(id=id).first()
+    
+    def send_confirmation_email(self) -> Response:
+        # request.url_root[:-1] is equal to "http://170.0.0.1:5000"
+        # url_for("userconfirm", user_id=self.id) is equal to "/user_confirm/1"
+        link = request.url_root[:-1] + url_for("userconfirm", user_id=self.id)
+
+        # using MAILGUN API for sending emails
+        link_html = f'<a href="{link}">link</a>'
+        return post(
+            f"https://api.mailgun.net/v3/{MAILGUN_DOMAIN}/messages",
+            auth=("api", MAILGUN_API_KEY),
+            deta={
+                "from": f"{FROM_TITLE} <{FROM_EMAIL}>",
+                "to": self.email,
+                "subject": "Registration confirmation",
+                "text": f"Please click the {link_html} to confirm your registration.",
+            },
+        )

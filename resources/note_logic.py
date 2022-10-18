@@ -24,16 +24,17 @@ class Note(Resource):
     @jwt_required()
     def get(cls, id: int):
         note = NoteModel.find_by_id(id)
-        #token_used = request.headers["Authorization"].split()[1]
-        #print(decode_token(token_used))
+        if note:
+            note_author_id = note.author
+        else:
+            return {"message": ITEM_NOT_FOUND}, 404
+
         current_user_id = get_jwt_identity()
         this_user = UserModel.find_by_id(current_user_id)
         is_superuser = this_user.is_superuser
-        if not is_superuser:
-            return {"message": HAVE_NO_RIGHT}, 403
-        if note:
+        if is_superuser == True or note_author_id == current_user_id:
             return note_schema.dump(note), 200
-        return {"message": ITEM_NOT_FOUND}, 404
+        return {"message": HAVE_NO_RIGHT}, 403
 
     @classmethod
     @jwt_required(fresh=True)
