@@ -6,10 +6,10 @@ from requests import Response, post
 from my_db import db
 
 
-MAILGUN_DOMAIN = ""
-MAILGUN_API_KEY = ""
-FROM_TITLE = ""
-FROM_EMAIL = ""
+MAILGUN_DOMAIN = "sandboxe32540c2ca9a454db777ed4b7347b8be.mailgun.org"
+MAILGUN_API_KEY = "0d8ad064484235787d6554984675baec-07e2c238-8bcd3598"
+FROM_TITLE = "Notes REST API"
+FROM_EMAIL = "postmaster@sandboxe32540c2ca9a454db777ed4b7347b8be.mailgun.org"
 
 class UserModel(db.Model):
     """
